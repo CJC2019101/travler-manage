@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/mvc
+           http://www.springframework.org/schema/mvc/spring-mvc.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/aop
+		   http://www.springframework.org/schema/aop/spring-aop.xsd
+           ">
+
+    <!-- 扫描controller的注解，别的不扫描
+         使用spring 的IOC技术在核心容器中创建所有的控制器类。-->
+    <context:component-scan base-package="com.cjf.ssm.controller">
+    </context:component-scan>
+
+    <!-- 配置视图解析器，只要是进过视图解析器的都是请求转发。 -->
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <!-- JSP文件所在的目录 -->
+        <property name="prefix" value="/pages/" />
+        <!-- 文件的后缀名 -->
+        <property name="suffix" value=".jsp" />
+    </bean>
+
+
+    <!--配置自定义类型转换器，他的配置方式是采用注册服务的方式实现。-->
+    <bean id="converterService" class="org.springframework.context.support.ConversionServiceFactoryBean" >
+        <!--内部含有一个 converters属性：converter（转换器类型）set集合，只能以set方式注入依赖-->
+        <property name="converters">
+            <!--因为底层结构都是一致的，array、list、set可以通用-->
+            <set>
+                <!--
+                    将自定义转换器，定义到转换器服务中。
+                        在内部 “转换器” set集合中 添加自己定义的类型转换器，其实他的内部已经有很多基本类型转换器
+                    已经存在于 springMVC的转换器服务这个类中了。
+                        怎么将这个 springMVC的转换器服务类重新注册给 springMVC呢？即更新springMVC
+                    转换器服务类。使自定义的 类型转换器可以使用。
+
+                -->
+                <bean class="com.cjf.ssm.converter.StringToDateConverter"></bean>
+            </set>
+        </property>
+    </bean>
+
+    <!-- 设置静态资源不过滤 ，访问静态资源的请求可以直接访问。这样就不会存在访问静态资源
+         的请求报 404错误。-->
+    <mvc:resources location="/css/" mapping="/css/**" />
+    <mvc:resources location="/img/" mapping="/img/**" />
+    <mvc:resources location="/js/" mapping="/js/**" />
+    <mvc:resources location="/plugins/" mapping="/plugins/**" />
+
+
+
+    <!-- 开启对SpringMVC注解的支持 ，更新类型转换器服务类也是通过该标签实现的。-->
+    <mvc:annotation-driven conversion-service="converterService"></mvc:annotation-driven>
+
+
+    <!--
+        支持AOP的注解支持，AOP底层使用代理技术
+        JDK动态代理，要求必须有接口
+        cglib代理，生成子类对象，proxy-target-class="true" 默认使用cglib的方式，基于子类的动态代理。
+    -->
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+
+</beans>

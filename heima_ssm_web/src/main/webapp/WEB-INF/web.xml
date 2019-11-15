@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+  <!-- 配置监听器 -->
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+  <!--AOP的应用，为什么就可以在各个方法中注入 HttpServletRequest了？监听器随Tomcat服务器
+      的启动而创建。可是我都还没发送请求呢。-->
+  <listener>
+    <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
+  </listener>
+
+  <!-- 配置监听器，加载配置文件的路径 -->
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>classpath*:applicationContext.xml,classpath*:spring-security.xml</param-value>
+  </context-param>
+
+
+  <display-name>Archetype Created Web Application</display-name>
+  <!--配置核心控制器-->
+  <servlet>
+    <servlet-name>dispatcherServlet</servlet-name>
+    <servlet-class >org.springframework.web.servlet.DispatcherServlet</servlet-class>
+
+    <!--初始化参数-->
+    <init-param>
+      <param-name>contextConfigLocation</param-name>
+      <!--第一次Tomcat服务器的启动就加载springMVC配置文件。-->
+      <param-value>classpath:spring-mvc.xml</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+
+  <!--配置拦截请求-->
+  <servlet-mapping>
+    <servlet-name>dispatcherServlet</servlet-name>
+    <url-pattern>*.do</url-pattern>
+  </servlet-mapping>
+
+  <!-- 解决中文乱码过滤器 -->
+  <filter>
+    <filter-name>characterEncodingFilter</filter-name>
+    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>UTF-8</param-value>
+    </init-param>
+  </filter>
+  <filter-mapping>
+    <filter-name>characterEncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!--spring-Security过滤器配置，必须是springSecurityFilterChain 的原因是 这是SpringSecurity
+    提供的bean类 只要springSecurity初始化，springSecurity的核心容器就会加载此bean类，
+    springSecurity的过滤器需要使用该类进行初始化。 springSecurity会将配置文件中所有的
+    过滤器加载到工作空间。-->
+  <filter>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <error-page>
+    <error-code>403</error-code>
+    <location>/erroPage/403.jsp</location>
+  </error-page>
+
+  <!--默认加载文件的顺序。如果Index.html没有加载index.htm以此类推。-->
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+  </welcome-file-list>
+</web-app>

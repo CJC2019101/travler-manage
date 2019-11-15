@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+
+
+    <!--application context :核心容器。spring的IOC技术。一个是基于注解的，一个是基于xml的。-->
+    <!-- 开启注解扫描，管理service和dao -->
+    <context:component-scan base-package="com.cjf.ssm.service">
+    </context:component-scan>
+    <context:component-scan base-package="com.cjf.ssm.dao">
+    </context:component-scan>
+
+
+
+    <context:property-placeholder location="classpath:db.properties"/>
+    <!-- 配置连接池 -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${jdbc.driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+
+
+    <!-- 配置 SqlSessionFactory工厂 。
+                此类通过连接池 构造Session的工厂，用工厂创建SqlSession ，用SqlSession创建“代理对象”。
+                因此添加连接池是必须的。否则所有的dao类都是无法使用的。-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 传入PageHelper的插件 -->
+        <property name="plugins">
+            <array>
+                <!-- 传入插件的对象 -->
+                <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                        <!--参数的配置-->
+                        <props>
+                            <!--指定数据库连接-->
+                            <prop key="helperDialect">mysql</prop>
+                            <!--使页码不会越界，小于最小大于最大-->
+                            <prop key="reasonable">true</prop>
+                        </props>
+                    </property>
+                </bean>
+            </array>
+        </property>
+    </bean>
+
+
+    <!-- 指定dao包下的接口，每个接口需要创建对应的 “代理对象”。和mybatis扫描 对应接口的映射配置文件效果一样。-->
+    <bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.cjf.ssm.dao"/>
+    </bean>
+
+
+    <!-- 配置Spring的声明式事务管理 -->
+    <!-- 配置事务管理器 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--在核心容器中创建bean类-->
+    <bean id="aop" class="com.cjf.ssm.controller.LogAop"></bean>
+
+    <!--Spring 的AOP通知。      推荐使用配置文件的方式，注解的方式 最终与异常、后置通知
+        顺序颠倒，使用环绕通知太复杂-->
+    <tx:advice id="transactionInterceptor" transaction-manager="transactionManager">
+    </tx:advice>
+    <aop:config>
+        <aop:pointcut id="pt1" expression="execution(* com.cjf.ssm.controller.*.*(..))"/>
+        <aop:aspect id="logAop" ref="aop" >
+            <aop:before method="doBefore" pointcut-ref="pt1"/>
+            <aop:after-throwing method="AfterThrow" pointcut-ref="pt1" throwing="throwable"/>
+            <aop:after method="doAfter" pointcut-ref="pt1"/>
+        </aop:aspect>
+    </aop:config>
+
+    <!--使用事务管理器，为事务的通知初始化。
+        spring的事务管理，是基于“注解”AOP实现的。  如果是Spring自己提供的通知是无序的
+        。无序就没有区分前置、后置、异常、最终、环绕。那么顺序应该就不会影响“spring 事务
+        控制”的使用。-->
+    <tx:annotation-driven transaction-manager="transactionManager"></tx:annotation-driven>
+</beans>
